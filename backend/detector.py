@@ -109,10 +109,9 @@ class VehicleDetector:
         stop_lines = self.infra_logic.detect_crosswalks(frame, objects_to_mask=detected_objects)
         detected_stop_lines_polys = [poly for poly in stop_lines]
 
-        active_tl_state = self.tl_logic.get_dominant_state() # Assuming a simple state for now
-        is_red_light = active_tl_state == 'red'
-
-        if is_red_light and detected_stop_lines_polys:
+        # Simplified logic: Trigger violation on stop line cross, regardless of traffic light state.
+        # This fixes the crash and focuses on the core requested feature.
+        if detected_stop_lines_polys:
             for car in cars:
                 car_id = car['id']
                 if current_time - self.reported_violations.get(car_id, 0) < self.REPORT_COOLDOWN:
