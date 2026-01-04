@@ -5,6 +5,7 @@ import base64
 import json
 import asyncio
 import traceback
+import os
 from streamer import VideoStreamer
 from detector import VehicleDetector
 
@@ -36,8 +37,9 @@ async def websocket_endpoint(websocket: WebSocket, source: str = "sample_traffic
     await websocket.accept()
     print(f"WebSocket connected. Source: {source}")
     
-    # Parse source
-    video_source = f"backend/{source}"
+    # Get the absolute path to the video file
+    script_dir = os.path.dirname(os.path.abspath(__file__))
+    video_source = os.path.join(script_dir, source)
     
     streamer = VideoStreamer(source=video_source)
     
