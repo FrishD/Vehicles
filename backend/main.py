@@ -32,14 +32,12 @@ async def startup_event():
         traceback.print_exc()
 
 @app.websocket("/ws")
-async def websocket_endpoint(websocket: WebSocket, source: str = "0"):
+async def websocket_endpoint(websocket: WebSocket, source: str = "sample_traffic.mp4"):
     await websocket.accept()
     print(f"WebSocket connected. Source: {source}")
     
     # Parse source
-    video_source = 0
-    if source != "0":
-        video_source = source
+    video_source = f"backend/{source}"
     
     streamer = VideoStreamer(source=video_source)
     
