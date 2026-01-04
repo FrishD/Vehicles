@@ -48,8 +48,46 @@ export default function VideoFeed({ onViolations, className }) {
         };
     }, [onViolations]);
 
+    const renderStatus = () => {
+        return (
+            <div className="absolute inset-0 flex items-center justify-center bg-white/80 backdrop-blur-sm z-10">
+                <div className="bg-white/90 p-8 rounded-2xl shadow-xl border border-gray-200/80 text-center max-w-md mx-auto">
+                    <div className="w-20 h-20 mx-auto bg-gray-100 rounded-full flex items-center justify-center mb-4 border border-gray-200">
+                        <Camera size={40} className="text-gray-400" />
+                    </div>
+                    <h2 className="text-xl font-bold text-gray-800 mb-2">
+                        {
+                            {
+                                connecting: "Connecting...",
+                                disconnected: "Video Feed Unavailable",
+                                error: "Connection Error"
+                            }[status]
+                        }
+                    </h2>
+                    <p className="text-gray-500 text-sm mb-6">
+                        {
+                            {
+                                connecting: "Attempting to connect to the video stream. Please wait.",
+                                disconnected: "The connection to the camera has been interrupted. Please check the unit.",
+                                error: "Could not establish a connection to the video feed."
+                            }[status]
+                        }
+                    </p>
+                    <div className="flex justify-center gap-3">
+                        <button className="px-6 py-2.5 bg-blue-600 text-white font-semibold rounded-lg shadow-md hover:bg-blue-700 transition-all duration-200">
+                            Reconnect Feed
+                        </button>
+                        <button className="px-6 py-2.5 bg-gray-100 text-gray-700 font-semibold rounded-lg border border-gray-300 hover:bg-gray-200 transition-all duration-200">
+                            Run Diagnostics
+                        </button>
+                    </div>
+                </div>
+            </div>
+        )
+    };
+
     return (
-        <div className={`relative rounded-2xl overflow-hidden shadow-2xl bg-black ${className}`}>
+        <div className={`relative w-full h-full bg-gray-900 ${className}`}>
             {imageSrc ? (
                 <img
                     src={imageSrc}
@@ -57,23 +95,12 @@ export default function VideoFeed({ onViolations, className }) {
                     className="w-full h-full object-cover"
                 />
             ) : (
-                <div className="flex flex-col items-center justify-center w-full h-full bg-slate-900 text-slate-500">
-                    {status === 'connecting' && <div className="animate-pulse">Connecting to Drone Feed...</div>}
-                    {status === 'disconnected' && <div className="flex items-center gap-2"><AlertTriangle /> Feed Disconnected</div>}
-                    {status === 'error' && <div className="text-red-500">Connection Error</div>}
+                <div className="flex flex-col items-center justify-center w-full h-full bg-gray-200 text-gray-500">
+                   {/* This part is now handled by the overlay */}
                 </div>
             )}
 
-            <div className="absolute top-4 left-4 bg-black/60 backdrop-blur-md px-3 py-1.5 rounded-full flex items-center gap-2 text-xs font-mono text-emerald-400 border border-emerald-500/30">
-                <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></div>
-                LIVE FEED
-            </div>
-
-            {status !== 'connected' && (
-                <div className="absolute inset-0 flex items-center justify-center bg-black/80 backdrop-blur-sm z-10">
-                    <div className="text-white font-mono">{status.toUpperCase()}</div>
-                </div>
-            )}
+            {status !== 'connected' && renderStatus()}
         </div>
     );
 }

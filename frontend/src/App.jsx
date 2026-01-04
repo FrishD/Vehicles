@@ -13,48 +13,45 @@ function App() {
   }, []);
 
   return (
-    <div className="flex h-screen w-full bg-slate-950 text-white overflow-hidden font-sans">
-      {/* Sidebar / Navigation (Icon only for clean look) */}
-      <div className="w-20 border-r border-white/5 flex flex-col items-center py-6 gap-8 bg-slate-900/50 backdrop-blur-md z-20">
-        <div className="p-3 bg-blue-600 rounded-xl shadow-lg shadow-blue-500/20">
-          <Activity className="text-white" size={24} />
+    <div className="flex h-screen w-full bg-gray-100 text-gray-800 overflow-hidden font-sans">
+      {/* Sidebar / Navigation */}
+      <div className="w-24 border-r border-gray-200 flex flex-col items-center py-6 gap-8 bg-white z-20">
+        <div className="p-3 bg-blue-500 rounded-xl shadow-md shadow-blue-500/30">
+          <Activity className="text-white" size={28} />
         </div>
         {/* Add more icons here if needed */}
       </div>
 
       {/* Main Content Area */}
-      <div className="flex-1 flex flex-col relative">
-        {/* Header Overlay */}
-        <div className="absolute top-0 left-0 right-0 p-6 z-10 flex justify-between items-start pointer-events-none">
+      <div className="flex-1 flex flex-col relative p-6">
+        {/* Header */}
+        <div className="flex justify-between items-center mb-4">
           <div>
-            <h1 className="text-3xl font-bold bg-gradient-to-r from-blue-400 via-purple-400 to-emerald-400 bg-clip-text text-transparent">
-              SkyGuard AI
+            <h1 className="text-2xl font-bold text-gray-900">
+              Camera 04 - Intersection 5th & Main
             </h1>
-            <p className="text-slate-400 text-sm mt-1">Aerial Traffic Enforcement System</p>
           </div>
-
-          <div className="flex gap-4 pointer-events-auto">
-            <div className="px-4 py-2 bg-slate-900/80 backdrop-blur border border-white/10 rounded-lg text-xs font-mono">
-              <span className="text-slate-500 mr-2">SYS STATUS</span>
-              <span className="text-emerald-400">ONLINE</span>
+          <div className="flex gap-4 items-center">
+            <div className="px-3 py-1 bg-red-100 border border-red-200 rounded-full text-xs font-semibold text-red-600 flex items-center gap-2">
+              <span className="w-2 h-2 bg-red-500 rounded-full"></span>
+              SYSTEM OFFLINE
             </div>
           </div>
         </div>
 
         {/* Video Feed Layer */}
-        <div className="flex-1 relative bg-black">
+        <div className="flex-1 relative rounded-2xl overflow-hidden shadow-lg bg-white">
           <VideoFeed
             className="w-full h-full"
             onViolations={handleViolations}
           />
-
-          {/* Gradient Overlay for aesthetic depth */}
-          <div className="absolute inset-0 bg-gradient-to-tr from-slate-900/50 via-transparent to-transparent pointer-events-none"></div>
         </div>
       </div>
 
       {/* Right Sidebar - Alerts */}
-      <AlertsPanel alerts={alerts} />
+      <div className="w-[400px] p-6">
+        <AlertsPanel alerts={alerts} />
+      </div>
     </div>
   )
 }
