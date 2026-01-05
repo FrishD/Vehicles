@@ -85,10 +85,9 @@ async def websocket_violation_endpoint(websocket: WebSocket):
     except WebSocketDisconnect:
         violation_manager.disconnect(websocket)
 
-async def processing_loop(source: str = "sample_traffic.mp4"):
-    logger.info(f"Starting processing loop with source: {source}")
-    video_source = os.path.join(script_dir, source)
-    streamer = VideoStreamer(source=video_source)
+async def processing_loop():
+    logger.info("Starting processing loop with live camera feed")
+    streamer = VideoStreamer(source=0) # Use camera feed
 
     while True:
         try:
