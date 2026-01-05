@@ -5,6 +5,8 @@ import base64
 import json
 import asyncio
 import traceback
+import os
+from fastapi.responses import JSONResponse
 from detector import VehicleDetector
 
 app = FastAPI()
@@ -117,3 +119,18 @@ def list_cameras():
             available.append(i)
             cap.release()
     return {"available_cameras": available}
+
+@app.get("/plates")
+def get_plates():
+    """Returns a list of previously scanned plates"""
+    log_file = "backend/reports/plates.json"
+    if not os.path.exists(log_file):
+        return JSONResponse(content={"plates": []})
+
+    with open(log_file, 'r') as f:
+        try:
+            data = json.load(f)
+        except json.JSONDecodeError:
+            data = {"plates": []} # Or handle error appropriately
+
+    return JSONResponse(content=data)

@@ -2,6 +2,7 @@ import cv2
 import numpy as np
 import os
 import time
+import json
 from processing.stabilization import ObjectTracker
 from processing.enhancement import ImageEnhancer
 from logic.traffic_light import TrafficLightLogic
@@ -35,6 +36,35 @@ class VehicleDetector:
         self.vehicle_history = {} # id -> {'last_pos': (x,y), 'last_time': t, 'velocity': v}
         self.last_frame_time = time.time()
 
+    def _log_plate(self, plate, timestamp):
+        """Logs a successfully read plate to a JSON file."""
+        log_file = "backend/reports/plates.json"
+        try:
+            # Read existing data
+            if os.path.exists(log_file) and os.path.getsize(log_file) > 0:
+                with open(log_file, 'r') as f:
+                    data = json.load(f)
+            else:
+                data = {"plates": []}
+
+            # Append new plate
+            new_entry = {
+                "plate": plate,
+                "time": timestamp.strftime("%H:%M:%S")
+            }
+
+            # Avoid duplicates
+            if new_entry not in data["plates"]:
+                data["plates"].insert(0, new_entry) # Prepend to keep it sorted by most recent
+                data["plates"] = data["plates"][:20] # Keep only the last 20 entries
+
+                # Write data back
+                with open(log_file, 'w') as f:
+                    json.dump(data, f, indent=4)
+
+        except (IOError, json.JSONDecodeError) as e:
+            print(f"Error logging plate: {e}")
+
     def _process_violation_task(self, frame, car_obj, violation_type, timestamp, filename_base):
         """
         Background task:
@@ -56,6 +86,10 @@ class VehicleDetector:
             lpr_text = read_license_plate(car_crop)
             print(f"LPR Result for {car_obj['id']}: {lpr_text}")
             
+            # If a valid plate is found, log it
+            if lpr_text != "Unknown" and lpr_text != "LPR Error":
+                self._log_plate(lpr_text, timestamp)
+
             # Save the crop for the report
             crop_path = f"backend/reports/images/{filename_base}_crop.jpg"
             cv2.imwrite(crop_path, car_crop)
