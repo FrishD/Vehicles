@@ -229,23 +229,16 @@ class VehicleDetector:
         h, w = frame.shape[:2]
         current_time = time.time()
         
-        # 3. BEHAVIORAL LEARNING
-        # If car is stopped (< 15 px/s) while a TL is red, record association
-        for car in cars:
-            if car.get('velocity', 999) < 15: # Stopped
-                cx1, cy1, cx2, cy2 = car['box']
-                cx, cy = (cx1 + cx2) / 2, (cy1 + cy2) / 2
-                for tl in traffic_lights:
-                    if tl['state'] == 'red':
-                        self.tl_logic.record_vehicle_stop(tl['id'], cx, cy, w, h)
+        # 3. Infrastructure Detection
+        detected_objects = cars + pedestrians
+        stop_lines, crosswalks = self.infra_logic.detect_infrastructure(frame, objects_to_mask=detected_objects)
 
         # 4. Pedestrian Violations
-        ped_violations = self.ped_logic.check_yield_violations(cars, pedestrians)
+        ped_violations = self.ped_logic.check_yield_violations(cars, pedestrians, crosswalks)
         for pv in ped_violations:
             car_id = pv['car_id']
-            if car_id in self.reported_violations:
-                if current_time - self.reported_violations[car_id] < self.REPORT_COOLDOWN:
-                    continue
+            if car_id in self.reported_violations and current_time - self.reported_violations[car_id] < self.REPORT_COOLDOWN:
+                continue
             
             car_obj = next((c for c in cars if c['id'] == car_id), None)
             if car_obj:
@@ -255,25 +248,21 @@ class VehicleDetector:
                pv['time'] = v_data['time']
                violations.append(pv)
         
-        # 5. Red Light Violations (Using Learned Associations)
+        # 5. Red Light Violations
         for car in cars:
             car_id = car['id']
             if car_id in self.reported_violations:
                  if current_time - self.reported_violations[car_id] < self.REPORT_COOLDOWN:
                      continue 
             
-            # Car must be MOVING to commit a violation (not just standing in intersection)
-            if car.get('velocity', 0) < 30: # px/sec
+            if car.get('velocity', 0) < 30:
                 continue
 
             for tl in traffic_lights:
                 if tl['state'] == 'red':
-                    cx1, cy1, cx2, cy2 = car['box']
-                    cx, cy = (cx1 + cx2) / 2, cy2 # car front
+                    cx, cy = (car['box'][0] + car['box'][2]) / 2, car['box'][3]
                     
-                    # Check if this area is learned to be controlled by this light
                     if self.tl_logic.is_associated(tl['id'], cx, cy, w, h):
-                        # VIOLATION DETECTED
                         v_data = self.handle_violation(frame, car, "Red Light Violation")
                         self.reported_violations[car_id] = current_time
                         
@@ -282,7 +271,7 @@ class VehicleDetector:
                             'car_id': car['id'],
                             'tl_id': tl['id'],
                             'vehicle_id': car['id'],
-                            'message': f"Car {car['id']} crossed Red Light {tl['id']} (Learned Lane)",
+                            'message': f"Car {car['id']} crossed Red Light {tl['id']}",
                             'date': v_data['date'],
                             'time': v_data['time']
                         })
@@ -290,58 +279,13 @@ class VehicleDetector:
         # 6. Annotation
         annotated_frame = enhanced_frame.copy()
         
-        # 6. Stop Line / Crosswalk Detection
-        # (This now detects Stop Lines instead of Crosswalks per user request)
-        detected_objects = cars + pedestrians # Define detected_objects for the call
-        stop_lines = self.infra_logic.detect_crosswalks(frame, objects_to_mask=detected_objects)
-        
-        crosswalk_mask = np.zeros_like(frame, dtype=np.uint8)
-        detected_stop_lines_polys = []
-        
-        # FALLBACK: If no physical stop line detected, use traffic light position
-        is_virtual = False
-        if len(stop_lines) == 0 and len(traffic_lights) > 0:
-            is_virtual = True
-            # Create virtual stop line from traffic light positions
-            # Use the bottom of the traffic light bounding box as the "stop line y"
-            # and extend horizontally across the frame
-            h, w = frame.shape[:2]
-            
-            # Find the average y of traffic light bottoms
-            tl_bottom_ys = [tl['box'][3] for tl in traffic_lights]  # y2 values
-            avg_y = int(np.mean(tl_bottom_ys))
-            
-            # Create a horizontal line across the frame at this y
-            thickness = 8
-            virtual_pts = np.array([
-                [0, avg_y - thickness],
-                [w, avg_y - thickness],
-                [w, avg_y + thickness],
-                [0, avg_y + thickness]
-            ], dtype=np.int32)
-            stop_lines = [virtual_pts]
+        # Annotate crosswalks
+        for poly in crosswalks:
+            cv2.polylines(annotated_frame, [poly], isClosed=True, color=(255, 255, 0), thickness=2)
+            cv2.putText(annotated_frame, "CROSSWALK", (poly[0][0], poly[0][1] - 10),
+                        cv2.FONT_HERSHEY_SIMPLEX, 0.7, (255, 255, 0), 2)
 
-        for poly in stop_lines:
-            detected_stop_lines_polys.append(poly)
-            
-            # Draw on annotation frame
-            # Red for physical, Orange for virtual
-            color = (0, 165, 255) if is_virtual else (0, 0, 255)  # Orange or Red
-            label = "VIRTUAL STOP" if is_virtual else "STOP LINE"
-            
-            cv2.polylines(annotated_frame, [poly], isClosed=True, color=color, thickness=2)
-            
-            # Label
-            M = cv2.moments(poly)
-            if M['m00'] != 0:
-                cx = int(M['m10'] / M['m00'])
-                cy = int(M['m01'] / M['m00'])
-                cv2.putText(annotated_frame, label, (cx - 50, cy), 
-                            cv2.FONT_HERSHEY_SIMPLEX, 0.5, color, 2)
-            
-            # Add to mask for any future logic
-            cv2.fillPoly(crosswalk_mask, [poly], (255, 255, 255))
-            
+        # Annotate other objects (cars, pedestrians, etc.)
         for ped in pedestrians:
             x1, y1, x2, y2 = ped['box']
             cv2.rectangle(annotated_frame, (x1, y1), (x2, y2), (0, 255, 0), 2)
@@ -351,9 +295,7 @@ class VehicleDetector:
             x1, y1, x2, y2 = car['box']
             color = (255, 0, 0) # Blue for cars
             
-            # Check violation status
             is_violator = any(v['car_id'] == car['id'] for v in violations)
-            
             if is_violator:
                 color = (0, 0, 255) # Red for violators
                 
@@ -366,15 +308,12 @@ class VehicleDetector:
         for tl in traffic_lights:
             x1, y1, x2, y2 = tl['box']
             state = tl['state']
-            # Color mapping
-            # Light Gray (200, 200, 200) for unknown, Red/Yellow/Green for states
             c = (200, 200, 200) 
             if state == 'red': c = (0, 0, 255)
             elif state == 'green': c = (0, 255, 0)
             elif state == 'yellow': c = (0, 255, 255)
             
             cv2.rectangle(annotated_frame, (x1, y1), (x2, y2), c, 2)
-            # Add confidence to labels for debugging
             label = f"TL: {state} ({tl['conf']:.2f})"
             cv2.putText(annotated_frame, label, (x1, y1-10), 
                         cv2.FONT_HERSHEY_SIMPLEX, 0.5, c, 2)
