@@ -1,16 +1,37 @@
-import { useState, useCallback } from 'react'
+import { useState, useCallback, useEffect } from 'react'
 import VideoFeed from './components/VideoFeed'
 import AlertsPanel from './components/AlertsPanel'
 import { Activity } from 'lucide-react'
 
 function App() {
   const [alerts, setAlerts] = useState([]);
+  const [plateHistory, setPlateHistory] = useState([]);
+
+  const fetchHistory = useCallback(async () => {
+    try {
+      const response = await fetch('http://localhost:8000/plates');
+      const data = await response.json();
+      setPlateHistory(data.plates || []);
+    } catch (error) {
+      console.error("Failed to fetch plate history:", error);
+    }
+  }, []);
+
+  useEffect(() => {
+    const doFetch = async () => {
+      await fetchHistory();
+    };
+    doFetch();
+    const interval = setInterval(doFetch, 5000);
+    return () => clearInterval(interval);
+  }, [fetchHistory]);
 
   const handleViolations = useCallback((newViolations) => {
-    // Add new violations to the list, deduping if necessary or just prepend
-    // For now, just prepend
-    setAlerts(prev => [...newViolations, ...prev].slice(0, 50)); // Keep last 50
-  }, []);
+    if (newViolations.length > 0) {
+      setAlerts(prev => [...newViolations, ...prev].slice(0, 50)); // Keep last 50
+      fetchHistory();
+    }
+  }, [fetchHistory]);
 
   return (
     <div className="flex h-screen w-full bg-gray-100 text-gray-800 overflow-hidden font-sans">
@@ -50,7 +71,7 @@ function App() {
 
       {/* Right Sidebar - Alerts */}
       <div className="w-[400px] p-6">
-        <AlertsPanel alerts={alerts} />
+        <AlertsPanel alerts={alerts} history={plateHistory} />
       </div>
     </div>
   )
