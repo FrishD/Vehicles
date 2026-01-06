@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { Camera, AlertTriangle } from 'lucide-react';
+import { Camera, Zap } from 'lucide-react'; // Using Zap for a more "tech" feel
 
 export default function VideoFeed({ onViolations, className }) {
     const [imageSrc, setImageSrc] = useState(null);
@@ -29,7 +29,6 @@ export default function VideoFeed({ onViolations, className }) {
             ws.current.onclose = () => {
                 setStatus('disconnected');
                 console.log('Disconnected from video stream');
-                // Reconnect logic could go here
                 setTimeout(connect, 3000);
             };
 
@@ -50,44 +49,36 @@ export default function VideoFeed({ onViolations, className }) {
 
     const renderStatus = () => {
         return (
-            <div className="absolute inset-0 flex items-center justify-center bg-white/80 backdrop-blur-sm z-10">
-                <div className="bg-white/90 p-8 rounded-2xl shadow-xl border border-gray-200/80 text-center max-w-md mx-auto">
-                    <div className="w-20 h-20 mx-auto bg-gray-100 rounded-full flex items-center justify-center mb-4 border border-gray-200">
-                        <Camera size={40} className="text-gray-400" />
+            <div className="absolute inset-0 flex items-center justify-center bg-black/50 backdrop-blur-sm z-10">
+                <div className="text-center p-8">
+                    <div className="w-16 h-16 mx-auto bg-gray-700/50 rounded-full flex items-center justify-center mb-4 border border-cyan-400/30">
+                        <Camera size={32} className="text-cyan-400" />
                     </div>
-                    <h2 className="text-xl font-bold text-gray-800 mb-2">
+                    <h2 className="text-xl font-bold text-gray-100 mb-2">
                         {
                             {
-                                connecting: "Connecting...",
-                                disconnected: "Video Feed Unavailable",
-                                error: "Connection Error"
+                                connecting: "CONNECTING TO FEED",
+                                disconnected: "FEED UNAVAILABLE",
+                                error: "CONNECTION ERROR"
                             }[status]
                         }
                     </h2>
-                    <p className="text-gray-500 text-sm mb-6">
+                    <p className="text-gray-400 text-sm max-w-xs">
                         {
                             {
-                                connecting: "Attempting to connect to the video stream. Please wait.",
-                                disconnected: "The connection to the camera has been interrupted. Please check the unit.",
-                                error: "Could not establish a connection to the video feed."
+                                connecting: "Attempting to establish a secure connection to the video stream. Stand by.",
+                                disconnected: "Connection to the camera has been lost. The system will attempt to reconnect automatically.",
+                                error: "A critical error occurred while trying to connect to the video feed."
                             }[status]
                         }
                     </p>
-                    <div className="flex justify-center gap-3">
-                        <button className="px-6 py-2.5 bg-blue-600 text-white font-semibold rounded-lg shadow-md hover:bg-blue-700 transition-all duration-200">
-                            Reconnect Feed
-                        </button>
-                        <button className="px-6 py-2.5 bg-gray-100 text-gray-700 font-semibold rounded-lg border border-gray-300 hover:bg-gray-200 transition-all duration-200">
-                            Run Diagnostics
-                        </button>
-                    </div>
                 </div>
             </div>
         )
     };
 
     return (
-        <div className={`relative w-full h-full bg-gray-900 ${className}`}>
+        <div className={`relative w-full h-full bg-black ${className}`}>
             {imageSrc ? (
                 <img
                     src={imageSrc}
@@ -95,12 +86,17 @@ export default function VideoFeed({ onViolations, className }) {
                     className="w-full h-full object-cover"
                 />
             ) : (
-                <div className="flex flex-col items-center justify-center w-full h-full bg-gray-200 text-gray-500">
+                <div className="flex flex-col items-center justify-center w-full h-full bg-black text-gray-500">
                    {/* This part is now handled by the overlay */}
                 </div>
             )}
 
             {status !== 'connected' && renderStatus()}
+
+            <div className="absolute top-2 left-2 bg-black/50 px-2 py-1 rounded text-xs flex items-center gap-2">
+                <span className="w-2 h-2 rounded-full bg-red-500 animate-pulse"></span>
+                LIVE FEED
+            </div>
         </div>
     );
 }
