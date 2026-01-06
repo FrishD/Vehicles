@@ -134,3 +134,18 @@ def get_plates():
             data = {"plates": []} # Or handle error appropriately
 
     return JSONResponse(content=data)
+
+@app.get("/violations")
+def get_violations():
+    """Returns a list of all recorded violations"""
+    log_file = "backend/reports/violations.json"
+    if not os.path.exists(log_file):
+        return JSONResponse(content={"violations": []})
+
+    with open(log_file, 'r') as f:
+        try:
+            data = json.load(f)
+        except json.JSONDecodeError:
+            data = {"violations": []}
+
+    return JSONResponse(content=data)
