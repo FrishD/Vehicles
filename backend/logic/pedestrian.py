@@ -50,10 +50,11 @@ class PedestrianLogic:
             # The absolute value of the distance is the distance to the nearest edge.
             is_near_crosswalk = -100 < dist_to_crosswalk < 50 # Tunable proximity thresholds in pixels
 
-            # We define "moving" as having a velocity greater than a small threshold
-            is_moving = car.get('velocity', 0) > 15 # Velocity in pixels/sec from detector.py
+            # To be considered "yielding", a car must be moving very slowly (close to a stop).
+            # We define "not yielding" as moving with a velocity greater than a small threshold.
+            is_not_yielding = car.get('velocity', 0) > 5.0 # Velocity in pixels/sec from detector.py
 
-            if is_near_crosswalk and is_moving:
+            if is_near_crosswalk and is_not_yielding:
                 # If a car is moving near a crosswalk that has pedestrians in it, it's a potential violation.
                 violations.append({
                     'type': 'yield_violation',
